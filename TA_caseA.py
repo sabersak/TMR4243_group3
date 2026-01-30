@@ -74,15 +74,15 @@ class ThrustAllocator:
         alpha_2 = self.wrap_to_pi(alpha_2)
 
         F = np.array([F_1, F_2, F_3], dtype='float')
-        alpha = np.array([alpha_1, alpha_2], dtype='float')
+        alpha_cmd = np.array([alpha_1, alpha_2], dtype='float')
         u = np.linalg.inv(self.K) @ F
 
         u_cmd = self.clip_u(u)
         F_cmd = self.K @ u_cmd
 
-        self.f_d = self.rebuild_f(F_cmd, alpha)
+        self.f_d = self.rebuild_f(F_cmd, alpha_cmd)
     
-        return F_cmd, alpha, u_cmd
+        return F_cmd, alpha_cmd, u_cmd
     
 
 
@@ -90,8 +90,8 @@ if __name__ == '__main__':
     ta = ThrustAllocator()
     tau_cmd = np.array([-2, 0, 0]) #np.random.rand(3)
 
-    F, alpha, u = ta.allocate(tau_cmd)
+    F, alpha_cmd, u = ta.allocate(tau_cmd)
     print(f'F:{F}')
     print(f'u:{u}')
-    print(f'Alpha:{alpha}')
+    print(f'Alpha:{alpha_cmd}')
 
