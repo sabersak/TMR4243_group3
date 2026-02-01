@@ -9,6 +9,9 @@ from std_msgs.msg import Float32MultiArray
 def deadzone(x, dz=0.05):
     return 0.0 if abs(x) < dz else x
 
+def offset(raw):
+    return 0.5 * (1.0 - raw)
+
 class PS5ToTau(Node):
     def __init__(self):
         super().__init__('ps5_to_tau')
@@ -22,7 +25,10 @@ class PS5ToTau(Node):
     def cb(self, msg: Joy):
         surge =  deadzone(msg.axes[1])
         sway  =  deadzone(msg.axes[0])
-        yaw   =  deadzone(msg.axes[3])
+
+        l2 = offset(msg.axes[2])   # L2 trigger
+        r2 = offset(msg.axes[5])   # R2 trigger
+        yaw = deadzone(r2 - l2)
 
         out = Float32MultiArray()
         out.data = [
