@@ -12,3 +12,4 @@ class JoystickMapping:
     B_BUTTON: int = 1
     X_BUTTON: int = 3
     Y_BUTTON: int = 2
+    

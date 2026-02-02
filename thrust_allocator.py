@@ -207,8 +207,6 @@ class ThrustAllocator():
 
         return F_cmd, u_cmd, alpha_cmd, F_star, tau_err
 
-
-
 # ---------------- ROS wrapper ----------------
 if ROS_AVAILABLE:
     class ThrustAllocatorNode(Node):

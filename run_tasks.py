@@ -89,6 +89,7 @@ class TaskRunner:
         self.print_results(F_cmd, u_cmd, alpha_cmd, tau_err)
 
 
+
 if __name__ == "__main__":
     allocator = ThrustAllocator()
     allocator.setup_allocation_matrix()

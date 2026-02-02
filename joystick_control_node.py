@@ -114,9 +114,6 @@ class JoystickControl(rclpy.node.Node):
         self.allocation_mode = self.get_parameter('allocation_mode').get_parameter_value().string_value
 
 
-        
-
-
     def joy_callback(self, msg):
         result = np.zeros((5, 1), dtype=float)
 
