@@ -1,8 +1,17 @@
 import numpy as np
-import rclpy
-import rclpy.node
-import std_msgs.msg
 
+
+# ROS imports 
+try:
+    import rclpy
+    from rclpy.node import Node
+    import std_msgs.msg
+    ROS_AVAILABLE = True
+except Exception:
+    ROS_AVAILABLE = False
+    rclpy = None
+    Node = object
+    std_msgs = None
 
 class ThrustAllocator():
     """
@@ -12,7 +21,6 @@ class ThrustAllocator():
     """
 
     def __init__(self):
-        #super().__init__("thrust_allocator")
         # Geometry (meters)
         self.lx1, self.ly1 = -0.415, -0.070
         self.lx2, self.ly2 = -0.415, 0.070
@@ -20,7 +28,6 @@ class ThrustAllocator():
 
         # Task 2 constant allocation matrix
         self.B_rect = np.empty((3, 5), dtype=float)
-
 
 
         # Bounds
@@ -49,6 +56,7 @@ class ThrustAllocator():
 
         self.pub_F.publish(F_msg)
         self.pub_alpha.publish(alpha_msg)
+
     # ---------------- utilities ----------------
     @staticmethod
     def wrap_pi(a):
@@ -59,6 +67,13 @@ class ThrustAllocator():
         """B_W^† = W^{-1} B^T (B W^{-1} B^T)^†"""
         W_inv = np.linalg.inv(W)
         return W_inv @ B.T @ np.linalg.pinv(B @ W_inv @ B.T)
+    
+    @staticmethod
+    def Rz(theta):
+        c, s = np.cos(theta), np.sin(theta)
+        return np.array([[c, -s, 0.0],
+                         [s,  c, 0.0],
+                         [0.0, 0.0, 1.0]], dtype=float)
 
     # ---------------- Task 2 (varying azimuth) ----------------
     def setup_allocation_matrix(self):
@@ -193,15 +208,43 @@ class ThrustAllocator():
         return F_cmd, u_cmd, alpha_cmd, F_star, tau_err
 
 
-def main(args=None):
-    rclpy.init(args=args)
 
-    node = ThrustAllocator()
+# ---------------- ROS wrapper ----------------
+if ROS_AVAILABLE:
+    class ThrustAllocatorNode(Node):
+        def __init__(self):
+            super().__init__("thrust_allocator")
+            self.core = ThrustAllocator()
 
-    rclpy.spin(node)
+            self.sub = self.create_subscription(
+                std_msgs.msg.Float32MultiArray,
+                "tau_cmd",
+                self.tau_cmd_callback,
+                10
+            )
+            self.pub_F = self.create_publisher(std_msgs.msg.Float32MultiArray, "F", 10)
+            self.pub_alpha = self.create_publisher(std_msgs.msg.Float32MultiArray, "alpha", 10)
+            #self.setup_allocation_matrix()
+            
+        def tau_cmd_callback(self, msg):
+            tau_cmd = np.asarray(msg.data, dtype=float).reshape(3)
+            F_cmd, alpha_cmd, u_cmd, f_star, tau_err = self.core.allocate_task2(tau_cmd)
 
-    node.destroy_node()
-    rclpy.shutdown()
+            F_msg = std_msgs.msg.Float32MultiArray()
+            F_msg.data = [float(x) for x in F_cmd]
 
-#if __name__ == '__main__':
-#    main()
+            alpha_msg = std_msgs.msg.Float32MultiArray()
+            alpha_msg.data = [float(x) for x in alpha_cmd]
+
+            self.pub_F.publish(F_msg)
+            self.pub_alpha.publish(alpha_msg)
+
+    def main(args=None):
+        rclpy.init(args=args)
+        node = ThrustAllocatorNode()
+        rclpy.spin(node)
+        node.destroy_node()
+        rclpy.shutdown()
+
+    if __name__ == '__main__':
+        main()
