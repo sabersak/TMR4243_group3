@@ -55,6 +55,10 @@ class ThrustAllocator:
     def wrap_to_pi(self, angle):
         """Wrap angle(s) to [-pi, pi)"""
         return (angle + np.pi) % (2*np.pi) - np.pi
+    
+    def is_saturated(self, u, u_cmd, tol=1e-6):
+        return np.any(np.abs(u - u_cmd) > tol)
+
 
     def allocate(self, tau_cmd):
         B_W_pinv = self.weighted_pinv()
@@ -76,11 +80,15 @@ class ThrustAllocator:
         F = np.array([F_1, F_2, F_3], dtype='float')
         alpha_cmd = np.array([alpha_1, alpha_2], dtype='float')
         u = np.linalg.inv(self.K) @ F
+        u_cmd = self.clip_u(u.copy())
 
-        u_cmd = self.clip_u(u)
+        saturated = self.is_saturated(u, u_cmd)
+
         F_cmd = self.K @ u_cmd
 
-        self.f_d = self.rebuild_f(F_cmd, alpha_cmd)
+        f_rebuilt = self.rebuild_f(F_cmd, alpha_cmd)
+
+        gamma = 0.0 if saturated else 1.0
+        self.f_d = gamma * f_rebuilt
     
         return F_cmd, alpha_cmd, u_cmd
-
