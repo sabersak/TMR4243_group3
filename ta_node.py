@@ -19,30 +19,22 @@ class TANode(Node):
         )
 
         # Publishers 
-        self.pub_u = self.create_publisher(Float32MultiArray, 'u_cmd', 10)
-        self.pub_alpha = self.create_publisher(Float32MultiArray, 'alpha_cmd', 10)
-        self.pub_F = self.create_publisher(Float32MultiArray, 'F_cmd', 10)
+        self.pub_u = self.create_publisher(Float32MultiArray, 'tmr4243/command/u', 10)
 
     def cb(self, msg):
         tau_cmd = np.array(msg.data, dtype=float)
         F_cmd, alpha_cmd, u_cmd = self.ta.allocate(tau_cmd)
         #print(f"tau_cmd={tau_cmd}  u_cmd={u_cmd}  F_cmd={F_cmd}  alpha_cmd={alpha_cmd}")
 
+        u = np.concatenate([u_cmd, alpha_cmd])
+        
         # Publish
         u_msg = Float32MultiArray()
-        u_msg.data = np.asarray(u_cmd, dtype=float).flatten().tolist()
+        u_msg.data = np.asarray(u, dtype=float).flatten().tolist()
         self.pub_u.publish(u_msg)
 
-        a_msg = Float32MultiArray()
-        a_msg.data = np.asarray(alpha_cmd, dtype=float).flatten().tolist()
-        self.pub_alpha.publish(a_msg)
-
-        f_msg = Float32MultiArray()
-        f_msg.data = np.asarray(F_cmd, dtype=float).flatten().tolist()
-        self.pub_F.publish(f_msg)
-
         self.get_logger().info(
-            f"tau={tau_cmd}  u={np.asarray(u_cmd).round(3)}  "
+            f"tau={tau_cmd}  u={np.asarray(u).round(3)}  "
             f"F={np.asarray(F_cmd).round(3)}  alpha={np.asarray(alpha_cmd).round(3)}"
         )
 
