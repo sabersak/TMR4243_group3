@@ -26,7 +26,7 @@ class TANode(Node):
         F_cmd, alpha_cmd, u_cmd = self.ta.allocate(tau_cmd)
         #print(f"tau_cmd={tau_cmd}  u_cmd={u_cmd}  F_cmd={F_cmd}  alpha_cmd={alpha_cmd}")
 
-        u = np.concatenate([u_cmd, alpha_cmd])
+        u = np.array([u_cmd[2],u_cmd[0], u_cmd[1], alpha_cmd[0], alpha_cmd[1]]).T
         
         # Publish
         u_msg = Float32MultiArray()

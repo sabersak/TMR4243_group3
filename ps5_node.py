@@ -24,7 +24,7 @@ class PS5ToTau(Node):
 
     def cb(self, msg: Joy):
         surge =  deadzone(msg.axes[1])
-        sway  =  deadzone(msg.axes[0])
+        sway  =  -deadzone(msg.axes[0])
 
         l2 = offset(msg.axes[2])   # L2 trigger
         r2 = offset(msg.axes[5])   # R2 trigger
