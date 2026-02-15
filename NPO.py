@@ -21,7 +21,6 @@ class NPOObserver:
         self.L1 = self.omega_c * np.eye(3)
         self.L2 = 0.5 * self.omega_c * np.eye(3)
         self.L3 = 0.1 * self.omega_c * np.eye(3)
-        self.w = 0.00001 * np.ones(3)
 
         self.M_inv = np.linalg.inv(self.M)
         self.Tb_inv = np.linalg.inv(self.Tb)
@@ -66,14 +65,10 @@ class NPOObserver:
         eta_tilde = eta_meas - self.eta_hat
         eta_tilde[2] = self.wrap_angle(eta_tilde[2])
 
-        self.w  = np.array(self.w, dtype=float).reshape(3)
-        self.w3 = float(self.w[2])
-
-        y_tilde = eta_tilde + self.w
-        y_tilde[2] = self.wrap_angle(y_tilde[2])
+        y_tilde = eta_tilde
 
         psi = float(eta_meas[2])
-        Rpsi = self.R(psi + self.w3)
+        Rpsi = self.R(psi)
 
         eta_hat_dot = Rpsi @ self.nu_hat + self.L1 @ y_tilde
 
@@ -93,6 +88,7 @@ dt = 0.01
 T  = 200.0
 N  = int(T/dt) + 1
 t  = np.linspace(0.0, T, N)
+w = 1e-5 * np.ones(3)
 
 obs = NPOObserver()
 
@@ -120,10 +116,16 @@ for k, tk in enumerate(t):
     eta_true[:] = 0.0
     eta_true[2] = obs.wrap_angle(0.1 * tk)
 
-    eta_hat, nu_hat, b_hat = obs.step(dt, eta_true, tau)
+    eta_meas = eta_true + w
+    eta_meas[2] = obs.wrap_angle(eta_meas[2])
+
+    eta_hat, nu_hat, b_hat = obs.step(dt, eta_meas, tau)
 
     eta_tilde = eta_true - eta_hat
     eta_tilde[2] = obs.wrap_angle(eta_tilde[2])
+
+    nu_true[:] = 0.0
+    nu_true[2] = 0.1
 
     nu_tilde = nu_true - nu_hat
     b_tilde  = b_true - b_hat
