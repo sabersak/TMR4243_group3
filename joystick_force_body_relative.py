@@ -24,7 +24,7 @@ def joystick_force_body_relative(
         allocation_mode: str = "varying") -> np.ndarray:
 
     JOY_X = deadzone(joystick.axes[mapping.LEFT_STICK_VERTICAL])     # surge
-    JOY_Y = deadzone(joystick.axes[mapping.LEFT_STICK_HORIZONTAL])   # sway
+    JOY_Y = -deadzone(joystick.axes[mapping.LEFT_STICK_HORIZONTAL])   # sway
 
     l2 = trigger_to_01(joystick.axes[mapping.LEFT_TRIGGER])
     r2 = trigger_to_01(joystick.axes[mapping.RIGHT_TRIGGER])

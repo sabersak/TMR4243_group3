@@ -29,7 +29,7 @@ def joystick_force_basin_relative(
     psi_rel = psi - float(psi_mc)
 
     JOY_X = deadzone(joystick.axes[mapping.LEFT_STICK_VERTICAL])     # basin surge
-    JOY_Y = deadzone(joystick.axes[mapping.LEFT_STICK_HORIZONTAL])   # basin sway
+    JOY_Y = -deadzone(joystick.axes[mapping.LEFT_STICK_HORIZONTAL])   # basin sway
     l2 = trigger_to_01(joystick.axes[mapping.LEFT_TRIGGER])
     r2 = trigger_to_01(joystick.axes[mapping.RIGHT_TRIGGER])
     JOY_N = r2 - l2
@@ -51,6 +51,7 @@ def joystick_force_basin_relative(
         u1, u2, u3 = u_cmd3
         a1, a2 = alpha_cmd
 
-    
+    #tau = np.array([[float(tau0), float(tau1), float(tau2), float(a1), float(a2)]], dtype=float).T
+    #return tau
     u = np.array([[float(u3), float(u1), float(u2), float(a1), float(a2)]], dtype=float).T
     return u
