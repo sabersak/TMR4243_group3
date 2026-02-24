@@ -96,8 +96,8 @@ def main():
     # -------- Gains --------
     omega_c = 0.2
     L1 = omega_c*np.eye(3)
-    L2 = (omega_c**2)*np.eye(3)
-    L3 = 0.1*(omega_c**2)*np.eye(3)   
+    L2 = 2.5*(omega_c**2)*np.eye(3)
+    L3 = 0.125*(omega_c**2)*np.eye(3)   
     k  = 1.0
 
     #dr_window = (60.0, 90.0)  # set None to disable

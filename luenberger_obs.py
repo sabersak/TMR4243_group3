@@ -10,11 +10,6 @@ def wrap_pi(a):
     return (a + np.pi) % (2*np.pi) - np.pi
 
 class LuenbergerObserver:
-    """
-    Luenberger observer with bias estimation.
-    Discrete-time Euler step.
-    """
-
     def __init__(self):
         self.M = np.array([[9.9, 0.0, 0.0], 
                            [0.0, 10.8, 0.23],

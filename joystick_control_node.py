@@ -1,28 +1,5 @@
 #!/usr/bin/env python3
-#
-# This file is part of CyberShip Enterpries Suite.
-#
-# CyberShip Enterpries Suite software is free software: you can redistribute it
-# and/or modify it under the terms of the GNU General Public License as
-# published by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# CyberShip Enterpries Suite is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-# or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
-# more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# CyberShip Enterpries Suite. If not, see <https://www.gnu.org/licenses/>.
-#
-# Maintainer: Emir Cem Gezer
-# Email: emir.cem.gezer@ntnu.no, emircem.gezer@gmail.com, me@emircem
-# Year: 2024
-# Copyright (C) 2024 NTNU Marine Cybernetics Laboratory
-
-import math
 import numpy as np
-
 import rclpy
 import rclpy.node
 import std_msgs.msg
@@ -37,30 +14,26 @@ from joystick_force_body_relative import joystick_force_body_relative
 
 class JoystickControl(rclpy.node.Node):
     TASK_SIMPLE = 'simple'
-    TASK_BASIN = 'basin'
-    TASK_BODY = 'body'
+    TASK_BASIN  = 'basin'
+    TASK_BODY   = 'body'
     TASKS = [TASK_SIMPLE, TASK_BODY, TASK_BASIN]
-
-    # Saber added this
-    ALLOC_FIXED = 'fixed'
-    ALLOC_VARYING = 'varying'
-    ALLOC_MODES = [ALLOC_FIXED, ALLOC_VARYING]
-
 
     def __init__(self):
         super().__init__('tmr4243_joystick_control_node')
 
-        self.pubs = {}
-        self.subs = {}
-
-        self.subs["joy"] = self.create_subscription(
+        self.sub_joy = self.create_subscription(
             sensor_msgs.msg.Joy, '/joy', self.joy_callback, 10)
 
-        self.subs["eta"] = self.create_subscription(
+        self.sub_eta = self.create_subscription(
             std_msgs.msg.Float32MultiArray, '/tmr4243/state/eta', self.eta_callback, 10)
 
-        self.pubs["u_cmd"] = self.create_publisher(
+        # publish u (5) for simple mode
+        self.pub_u = self.create_publisher(
             std_msgs.msg.Float32MultiArray, '/tmr4243/command/u', 10)
+
+        # publish tau (3) for body/basin
+        self.pub_tau = self.create_publisher(
+            std_msgs.msg.Float32MultiArray, '/tmr4243/command/tau', 10)
 
         self.task = JoystickControl.TASK_SIMPLE
         self.declare_parameter(
@@ -69,95 +42,79 @@ class JoystickControl(rclpy.node.Node):
             rcl_interfaces.msg.ParameterDescriptor(
                 description="Task",
                 type=rcl_interfaces.msg.ParameterType.PARAMETER_STRING,
-                read_only=False,
                 additional_constraints=f"Allowed values: {' '.join(JoystickControl.TASKS)}"
             )
         )
 
-        self.joystick_mapping = JoystickMapping()
+        # basin reference heading (optional)
+        self.psi_mc = 0.0
+        self.declare_parameter('psi_mc', self.psi_mc)
 
+        self.joystick_mapping = JoystickMapping()
         joystick_params = [
-            'LEFT_STICK_HORIZONTAL', 'LEFT_STICK_VERTICAL', 'RIGHT_STICK_HORIZONTAL', 
-            'RIGHT_STICK_VERTICAL', 'LEFT_TRIGGER', 'RIGHT_TRIGGER', 
+            'LEFT_STICK_HORIZONTAL', 'LEFT_STICK_VERTICAL',
+            'RIGHT_STICK_HORIZONTAL', 'RIGHT_STICK_VERTICAL',
+            'LEFT_TRIGGER', 'RIGHT_TRIGGER',
             'A_BUTTON', 'B_BUTTON', 'X_BUTTON', 'Y_BUTTON'
         ]
+        for p in joystick_params:
+            self.declare_parameter(p, getattr(self.joystick_mapping, p))
+        for p in joystick_params:
+            setattr(self.joystick_mapping, p, int(self.get_parameter(p).value))
 
-        # Saber added this
-        self.allocation_mode = JoystickControl.ALLOC_VARYING
-        self.declare_parameter(
-            'allocation_mode',
-            self.allocation_mode,
-            rcl_interfaces.msg.ParameterDescriptor(
-                description="Thrust allocation mode",
-                type=rcl_interfaces.msg.ParameterType.PARAMETER_STRING,
-                read_only=False,
-                additional_constraints=f"Allowed values: {' '.join(JoystickControl.ALLOC_MODES)}"
-            )
-        )
-
-
-        for param in joystick_params:
-            self.declare_parameter(param, getattr(self.joystick_mapping, param))
-
-        for param in joystick_params:
-            setattr(self.joystick_mapping, param, int(self.get_parameter(param).value))
-
-        self.last_eta_msg = std_msgs.msg.Float32MultiArray()
-
+        self.last_eta = None
         self.timer = self.create_timer(0.1, self.timer_callback)
 
-    
     def timer_callback(self):
         self.task = self.get_parameter('task').get_parameter_value().string_value
-        self.get_logger().info(
-            f"Parameter task: {self.task}", throttle_duration_sec=1.0)
-        self.allocation_mode = self.get_parameter('allocation_mode').get_parameter_value().string_value
-
-
-    def joy_callback(self, msg):
-        result = np.zeros((5, 1), dtype=float)
-
-        if self.task == JoystickControl.TASK_SIMPLE:
-            result = joystick_simple(msg, self.joystick_mapping)
-
-        elif self.task == JoystickControl.TASK_BASIN:
-
-            if self.last_eta_msg is None:
-                self.get_logger().warn(f"Last eta message is {self.last_eta_msg}, cannot basin relative", throttle_duration_sec=1.0)
-                return
-
-            if len(self.last_eta_msg.data) != 3:
-                self.get_logger().warn(
-                    f"Last eta message has length of {len(self.last_eta_msg.data)} but it should be 3. Aborting...", throttle_duration_sec=1.0)
-                return
-
-            result = joystick_force_basin_relative(msg, np.array(self.last_eta_msg.data, dtype=float), self.joystick_mapping, allocation_mode=self.allocation_mode)
-
-        elif self.task == JoystickControl.TASK_BODY:
-            result = joystick_force_body_relative(msg, self.joystick_mapping,allocation_mode=self.allocation_mode)
-
-
-        if len(result) != 5:
-            self.get_logger().warn(
-                f"Result has length of {len(result)} but it should be 5. Aborting...", throttle_duration_sec=1.0)
-            return
-
-        u_cmd = std_msgs.msg.Float32MultiArray()
-        u_cmd.data = result.flatten().tolist()
-        self.pubs["u_cmd"].publish(u_cmd)
-
+        self.psi_mc = float(self.get_parameter('psi_mc').value)
+        self.get_logger().info(f"task={self.task}", throttle_duration_sec=1.0)
 
     def eta_callback(self, msg):
-        self.last_eta_msg = msg
+        if msg.data and len(msg.data) == 3:
+            self.last_eta = np.array(msg.data, dtype=float)
+        else:
+            self.last_eta = None
+
+    def joy_callback(self, msg):
+        if self.task == JoystickControl.TASK_SIMPLE:
+            # u is (5,1)
+            u = joystick_simple(msg, self.joystick_mapping)
+            if np.size(u) != 5:
+                self.get_logger().warn("joystick_simple must return 5 values.")
+                return
+            out = std_msgs.msg.Float32MultiArray()
+            out.data = [float(x) for x in np.asarray(u).reshape(-1)]
+            self.pub_u.publish(out)
+            return
+
+        # body/basin publish tau (3,1)
+        if self.task == JoystickControl.TASK_BODY:
+            tau = joystick_force_body_relative(msg, self.joystick_mapping)
+
+        elif self.task == JoystickControl.TASK_BASIN:
+            if self.last_eta is None:
+                self.get_logger().warn("No eta yet; cannot basin-relative.", throttle_duration_sec=1.0)
+                return
+            tau = joystick_force_basin_relative(msg, self.last_eta, self.joystick_mapping, psi_mc=self.psi_mc)
+
+        else:
+            self.get_logger().warn(f"Unknown task={self.task}")
+            return
+
+        if np.size(tau) != 3:
+            self.get_logger().warn("tau must be 3 values.")
+            return
+
+        out = std_msgs.msg.Float32MultiArray()
+        out.data = [float(x) for x in np.asarray(tau).reshape(-1)]
+        self.pub_tau.publish(out)
+
 
 def main(args=None):
-    # Initialize the node
     rclpy.init(args=args)
-
     rclpy.spin(JoystickControl())
-
     rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()
