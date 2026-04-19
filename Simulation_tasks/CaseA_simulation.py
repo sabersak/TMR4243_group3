@@ -1,6 +1,6 @@
 import numpy as np
-from thrust_allocator import ThrustAllocator
-from joystick_controller import JoystickController
+from thrust_allocation.thrust_allocator import ThrustAllocator
+from joystick_control.joystick_controller import JoystickController
 
 
 class TaskRunner:

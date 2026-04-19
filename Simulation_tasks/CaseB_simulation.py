@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from luenberger_obs import LuenbergerObserver, Rz, wrap_pi
+from observer.luenberger_obs import LuenbergerObserver, Rz, wrap_pi
 
 def band_limited_noise_step(x, sigma, alpha):
     w = np.random.randn(3) * sigma

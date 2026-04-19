@@ -62,7 +62,7 @@ class Observer(rclpy.node.Node):
         )
         self.declare_parameter(
             'L2',
-            [2.25*self.omega_c, 2.25*self.omega_c, 1.75*self.omega_c],
+            [2*2.25*self.omega_c, 2*2.25*self.omega_c, 2*1.75*self.omega_c],
             rcl_interfaces.msg.ParameterDescriptor(
                 description="L2 diagonal entries",
                 type=rcl_interfaces.msg.ParameterType.PARAMETER_DOUBLE_ARRAY
@@ -119,7 +119,8 @@ class Observer(rclpy.node.Node):
         L3 = np.diag(L3_value)
 
         #dead_reckoning = (task == Observer.TASK_DEADRECKONING)
-        dead_reckoning = self.manual_deadreckoning or auto_deadreckoning
+        #dead_reckoning = self.manual_deadreckoning or auto_deadreckoning
+        dead_reckoning = False
 
         m = std_msgs.msg.Bool()
         m.data = bool(dead_reckoning)
@@ -129,7 +130,7 @@ class Observer(rclpy.node.Node):
             eta_meas=self.last_eta,
             tau_meas=self.last_tau,
             L1=L1, L2=L2, L3=L3,
-            dt=max(dt, 1e-6),
+            dt=max(dt, 1e-3),
             dead_reckoning=dead_reckoning
         )
 
@@ -149,7 +150,7 @@ class Observer(rclpy.node.Node):
         self.eta_updated = True
     
     def joy_callback(self, msg):
-        btn = int(msg.buttons[0])  # X for manual DR
+        btn = int(msg.buttons[4])  # L1 for manual DR
         if btn == 1 and self.last_btn == 0:
             self.manual_deadreckoning = not self.manual_deadreckoning
             self.get_logger().info(f"Manual DR: {self.manual_deadreckoning}")

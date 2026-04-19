@@ -41,7 +41,9 @@ class ThrustAllocation(rclpy.node.Node):
         )
 
         self.last_tau = np.zeros(3, dtype=float)
+        self.get_logger().info("Thrust allocation node started.")
         self.timer = self.create_timer(0.1, self.timer_callback) 
+        
 
     def tau_cmd_callback(self, msg):
         if msg.data and len(msg.data) >= 3:
@@ -75,6 +77,9 @@ class ThrustAllocation(rclpy.node.Node):
         msg_u = std_msgs.msg.Float32MultiArray()
         msg_u.data = u_vec
         self.pub_u.publish(msg_u)
+
+        self.get_logger().info(f"mode={mode}", throttle_duration_sec=1.0)
+
 
 def main(args=None):
     rclpy.init(args=args)

@@ -1,5 +1,5 @@
 import numpy as np
-from thrust_allocator import ThrustAllocator
+from thrust_allocation.thrust_allocator import ThrustAllocator
 
 
 class JoystickController:

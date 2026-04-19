@@ -2,8 +2,13 @@
 import sensor_msgs.msg
 import numpy as np
 from joystick_mapping import JoystickMapping
-from thrust_allocator import ThrustAllocator
 from joystick_force_body_relative import deadzone, trigger_to_01
+
+def Rz(theta):
+    c, s = np.cos(theta), np.sin(theta)
+    return np.array([[c, -s, 0.0],
+                    [s,  c, 0.0],
+                    [0.0, 0.0, 1.0]], dtype=float)
 
 def joystick_force_basin_relative(
         joystick: sensor_msgs.msg.Joy,
@@ -25,8 +30,10 @@ def joystick_force_basin_relative(
     r2 = trigger_to_01(joystick.axes[mapping.RIGHT_TRIGGER])
     JOY_N = r2 - l2
 
-    tau_basin = np.array([JOY_X, JOY_Y, JOY_N], dtype=float)
+    kX, kY, kN = 2.0, 2.0, 1.0
+    tau_basin = np.array([kX * JOY_X, kY * JOY_Y, kN * JOY_N], dtype=float)
+    #tau_basin = np.array([JOY_X, JOY_Y, JOY_N], dtype=float)
 
     # rotate basin -> body
-    tau_body = ThrustAllocator.Rz(psi_rel).T @ tau_basin
+    tau_body = Rz(psi_rel).T @ tau_basin
     return np.asarray(tau_body, dtype=float).reshape(3, 1)

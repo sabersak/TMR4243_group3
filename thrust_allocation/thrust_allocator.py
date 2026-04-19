@@ -36,13 +36,17 @@ class ThrustAllocator():
         self.u3_min, self.u3_max = -1.0, 1.0
 
         # Defaults (Chosen values for K,W, and F_d)
-        self.K = np.eye(3, dtype=float)         # F = K u
+        #self.K = np.eye(3, dtype=float)         # F = K u
+
+        self.K = np.diag([1.0, 1.0, 1.0])
+
 
         self.W1 = np.eye(3, dtype=float)        # Task 1 weights
         self.Fd1 = np.zeros(3, dtype=float)     # Task 1 preference
 
         self.W2 = np.eye(5, dtype=float)        # Task 2 weights
-        self.fd2 = np.zeros(5, dtype=float)     # Task 2 preference
+        self.fd2 = np.zeros(5, dtype=float)     # Task 2 preference    (for simulation)
+        #self.fd2 = np.array([0.0, 0.001, 0.0, -0.001, 0.0])     #For Experiment.
 
     def tau_cmd_callback(self, msg):
         tau_cmd = msg.data

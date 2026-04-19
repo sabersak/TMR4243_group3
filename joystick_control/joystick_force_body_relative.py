@@ -24,5 +24,7 @@ def joystick_force_body_relative(
     r2 = trigger_to_01(joystick.axes[mapping.RIGHT_TRIGGER])
     JOY_N = r2 - l2                                                     # yaw moment
 
-    tau_cmd = np.array([JOY_X, JOY_Y, JOY_N], dtype=float).reshape(3, 1)
+    kX, kY, kN = 2.0, 2.0, 1.0
+    tau_cmd = np.array([kX * JOY_X, kY * JOY_Y, kN * JOY_N], dtype=float)
+    #tau_cmd = np.array([JOY_X, JOY_Y, JOY_N], dtype=float).reshape(3, 1)
     return tau_cmd
